@@ -43,13 +43,15 @@ final class AppModel {
             self.desktop.perform(action, at: self.cursorController.screenPosition)
         }
 
-        // Re-check accessibility whenever the app becomes active (e.g. after returning from System Settings)
+        // Re-check accessibility whenever the app becomes active (e.g. after returning from System Settings).
+        // Brief delay avoids racing against the TCC daemon writing the new grant.
         NotificationCenter.default.addObserver(
             forName: NSApplication.didBecomeActiveNotification,
             object: nil,
             queue: .main
         ) { [weak self] _ in
             Task { @MainActor [weak self] in
+                try? await Task.sleep(for: .milliseconds(500))
                 self?.checkAccessibility()
             }
         }

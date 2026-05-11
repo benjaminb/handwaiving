@@ -47,7 +47,7 @@ struct ContentView: View {
 
                     if model.isRunning {
                         CameraPreviewView(session: model.camera.session)
-                        .frame(height: 120)
+                        .aspectRatio(16/9, contentMode: .fit)
                         .clipShape(RoundedRectangle(cornerRadius: 8))
                         .overlay(
                             RoundedRectangle(cornerRadius: 8)
@@ -127,7 +127,7 @@ struct ContentView: View {
                     statusRow(
                         "Accessibility",
                         ok: model.accessibilityGranted,
-                        hint: model.accessibilityGranted ? nil : "Grant in System Settings → Privacy → Accessibility, then toggle off/on after each rebuild"
+                        hint: model.accessibilityGranted ? nil : "Grant in System Settings → Privacy → Accessibility. After each rebuild: remove the entry with − then re-add it."
                     )
                     Spacer()
                     if model.accessibilityGranted {
