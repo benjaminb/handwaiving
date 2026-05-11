@@ -1,0 +1,41 @@
+# Xcode build output
+Build/
+DerivedData/
+*.build/
+
+# Xcode user data (editor state, breakpoints, schemes — personal, not shared)
+xcuserdata/
+*.xcuserstate
+*.xccheckout
+*.moved-aside
+
+# Playground auto-generated resources
+playground.xcworkspace
+
+# Swift Package Manager
+.build/
+.swiftpm/
+
+# CocoaPods (not used here, but future-proof)
+Pods/
+Podfile.lock
+
+# Carthage
+Carthage/Build/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# Xcode crash logs
+*.crash
+
+# Instruments
+*.trace
+
+# Compiled Swift modules (regenerated at build time)
+*.swp
