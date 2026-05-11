@@ -34,12 +34,24 @@ final class AppModel {
     init() {
         availableCameras = CameraCapture.availableCameras()
         selectedCamera = availableCameras.first
+        checkAccessibility()
 
         // Wire gesture recognizer → desktop
         gestureRecognizer.onGesture = { [weak self] event in
             guard let self else { return }
             guard let action = self.gestureMap[event] else { return }
             self.desktop.perform(action, at: self.cursorController.screenPosition)
+        }
+
+        // Re-check accessibility whenever the app becomes active (e.g. after returning from System Settings)
+        NotificationCenter.default.addObserver(
+            forName: NSApplication.didBecomeActiveNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                self?.checkAccessibility()
+            }
         }
 
         // Wire performance latency notifications
@@ -58,7 +70,6 @@ final class AppModel {
 
     func start() {
         guard !isRunning else { return }
-        checkAccessibility()
 
         camera.onFrame = { [weak self] pixelBuffer in
             Task { @MainActor [weak self] in
@@ -120,7 +131,15 @@ final class AppModel {
     // MARK: - Accessibility
 
     func checkAccessibility() {
-        let options = [kAXTrustedCheckOptionPrompt.takeRetainedValue() as String: true] as CFDictionary
-        accessibilityGranted = AXIsProcessTrustedWithOptions(options)
+        // Passive check — used for status display
+        let trusted = AXIsProcessTrusted()
+        print("[Accessibility] AXIsProcessTrusted() = \(trusted)")
+        accessibilityGranted = trusted
+    }
+
+    // Opens System Settings to the Accessibility pane and adds this app
+    func requestAccessibilityPermission() {
+        let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
+        _ = AXIsProcessTrustedWithOptions(options)
     }
 }

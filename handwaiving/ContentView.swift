@@ -123,11 +123,23 @@ struct ContentView: View {
     private var statusSection: some View {
         GroupBox("Status") {
             VStack(alignment: .leading, spacing: 6) {
-                statusRow(
-                    "Accessibility",
-                    ok: model.accessibilityGranted,
-                    hint: model.accessibilityGranted ? nil : "Grant in System Settings → Privacy → Accessibility"
-                )
+                HStack {
+                    statusRow(
+                        "Accessibility",
+                        ok: model.accessibilityGranted,
+                        hint: model.accessibilityGranted ? nil : "Grant in System Settings → Privacy → Accessibility, then toggle off/on after each rebuild"
+                    )
+                    Spacer()
+                    if model.accessibilityGranted {
+                        Button("Check") { model.checkAccessibility() }
+                            .buttonStyle(.borderless)
+                            .font(.caption)
+                    } else {
+                        Button("Request…") { model.requestAccessibilityPermission() }
+                            .buttonStyle(.borderless)
+                            .font(.caption)
+                    }
+                }
                 statusRow(
                     "Hand detected",
                     ok: model.handDetector.isHandVisible
