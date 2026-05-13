@@ -1,3 +1,4 @@
+import AppKit
 import CoreGraphics
 import Foundation
 
@@ -27,12 +28,17 @@ final class DesktopInteractor {
 
     // MARK: - Private
 
-    private func post(_ type: CGEventType, at position: CGPoint, clickCount: Int64 = 1) {
+    private func post(_ type: CGEventType, at appkitPosition: CGPoint, clickCount: Int64 = 1) {
         let button: CGMouseButton = (type == .rightMouseDown || type == .rightMouseUp) ? .right : .left
-        guard let event = CGEvent(mouseEventSource: nil, mouseType: type, mouseCursorPosition: position, mouseButton: button) else { return }
+        guard let event = CGEvent(mouseEventSource: nil, mouseType: type, mouseCursorPosition: appkitToCG(appkitPosition), mouseButton: button) else { return }
         if clickCount > 1 {
             event.setIntegerValueField(.mouseEventClickState, value: clickCount)
         }
         event.post(tap: .cghidEventTap)
+    }
+
+    private func appkitToCG(_ p: CGPoint) -> CGPoint {
+        guard let screen = NSScreen.main else { return p }
+        return CGPoint(x: p.x, y: screen.frame.height - p.y)
     }
 }

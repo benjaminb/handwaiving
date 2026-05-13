@@ -63,7 +63,9 @@ final class AppModel {
             queue: .main
         ) { [weak self] note in
             if let ms = note.userInfo?["ms"] as? Double {
-                self?.perfMonitor.recordGestureLatency(ms: ms)
+                Task { @MainActor [weak self] in
+                    self?.perfMonitor.recordGestureLatency(ms: ms)
+                }
             }
         }
     }
@@ -89,11 +91,15 @@ final class AppModel {
                 // Feed calibration if in progress
                 self.calibration.feedLandmarks(lm)
 
-                // Move cursor if calibrated
+                // Move cursor if calibrated; only show reticule when actively pointing
                 if let transform = self.calibration.transform {
                     self.cursorController.update(landmarks: lm, transform: transform)
-                    self.overlay.updateCursor(at: self.cursorController.screenPosition)
-                    self.overlay.showHand()
+                    if lm.isPointingPose {
+                        self.overlay.updateCursor(at: self.cursorController.screenPosition)
+                        self.overlay.showHand()
+                    } else {
+                        self.overlay.showNoHand()
+                    }
                 }
 
                 // Feed gesture recognizer
@@ -125,7 +131,7 @@ final class AppModel {
 
     func openPlayground() {
         if playground == nil {
-            playground = PlaygroundWindowController()
+            playground = PlaygroundWindowController(model: self)
         }
         playground?.show()
     }

@@ -8,15 +8,15 @@ A macOS proof-of-concept that lets you control your desktop with hand gestures v
 
 ### Cursor positioning
 
-The app uses a **ray casting via calibration** approach:
+The app uses a **fingertip-position calibration** approach (touchpad model):
 
-1. Vision detects 21 hand landmarks in each camera frame.
-2. The **pointing direction** is computed as the unit vector from the index finger knuckle (`indexMCP`) to the fingertip (`indexTip`) in Vision's normalized image coordinate space.
-3. A one-time **4-corner calibration** maps this direction vector to screen coordinates. The user points at each screen corner; the app averages ~45 frames of direction samples per corner, then solves a 2D affine transform (3×3 matrix inversion) that maps any direction vector to a screen position.
+1. Vision detects hand landmarks in each camera frame.
+2. The **index fingertip position** (`indexTip`) in Vision's normalized [0, 1]² image coordinate space is used as the cursor signal.
+3. A one-time **4-corner calibration** maps this image position to screen coordinates. The user extends their index finger toward each screen corner; the app averages ~45 frames of `indexTip` samples per corner, then solves a 2D affine transform (3×3 matrix inversion) that maps any fingertip position to a screen coordinate.
 4. The calibration transform is applied on every frame, followed by **exponential moving average smoothing** (α=0.25) to reduce jitter.
 5. `CGWarpMouseCursorPosition` moves the system cursor to the computed position.
 
-The key insight: we don't care where the hand is in the camera frame, only the *direction* the finger is pointing. This makes the mapping independent of hand position.
+The key insight: the fingertip's 2D image position is always well-defined regardless of which direction the finger is angled. Earlier direction-vector approaches collapsed under foreshortening when the finger pointed toward the camera (e.g. at the screen centre).
 
 ### Gesture recognition
 
@@ -24,12 +24,12 @@ Gestures are detected by state machines running on the landmark stream.
 
 | Gesture | How it's detected | Default action |
 |---|---|---|
-| Pointing (index extended, others curled) | `indexExtension > handScale * 0.7 && middleExtension < indexExtension * 0.75` | Move cursor |
-| **Come-here 1×** (single index curl) | `indexTip` moves to <55% of baseline extension within 300ms, returns | Click |
+| Pointing (index extended, middle curled) | `dist(indexPIP, wrist) > handScale * 1.1` AND `dist(middleTip, wrist) < dist(middleMCP, wrist) * 1.3` | Move cursor |
+| **Come-here 1×** (single index curl) | PIP→wrist distance drops to <55% of pointing-pose baseline within 300ms, then returns | Click |
 | **Come-here 2×** (double index curl) | Same curl detected twice within 450ms window | Double-click |
 | **Bang** (thumb dip + raise while pointing) | `thumbTip.y < wrist.y - handScale*0.6`, then returns within 700ms | Right-click |
 
-Vision coordinates have y=0 at the bottom of the image, so "thumb down" corresponds to a smaller y value.
+Using the PIP (middle knuckle) joint instead of the fingertip for extension detection makes the check robust to foreshortening — when the index finger points toward the camera its tip appears near the MCP in 2D, but the PIP remains laterally displaced from the wrist. Vision coordinates have y=0 at the bottom of the image.
 
 The gesture → action mapping is stored as a `[GestureEvent: DesktopAction]` dictionary in `AppModel` and can be remapped at runtime.
 
@@ -122,7 +122,8 @@ Calibration is saved to `UserDefaults` and survives restarts. Press **Recalibrat
 | Parameter | Location | Effect |
 |---|---|---|
 | `smoothingAlpha` | `CursorController` | Lower = smoother but laggier cursor (default 0.25) |
-| Pointing pose thresholds | `HandLandmarks.isPointingPose` | Adjust how strictly "pointing" is detected |
+| Index extension threshold | `HandLandmarks.isPointingPose` — `scale * 1.1` | Raise if pointing activates too easily; lower if extended index is missed |
+| Middle curl threshold | `HandLandmarks.isPointingPose` — `middleMCPDist * 1.3` | Raise if partially-curled middle still blocks pointing recognition |
 | Bang thumb threshold | `GestureRecognizer.processBang` | `handScale * 0.6` — increase if accidental triggers |
 | Come-here curl threshold | `GestureRecognizer.processComeHere` | `0.55` of baseline — decrease if curls go undetected |
 | Calibration samples | `CalibrationManager.samplesNeeded` | More samples = more stable calibration (default 45) |

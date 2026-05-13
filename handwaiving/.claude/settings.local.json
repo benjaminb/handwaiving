@@ -3,7 +3,8 @@
     "allow": [
       "Bash(find /Users/benjaminbasseri/Dropbox/Studies/Programming/handwaiving -maxdepth 3 -not -path \"*/\\\\.*\" | head -40)",
       "Read(//Users/benjaminbasseri/Dropbox/Studies/Programming/handwaiving/**)",
-      "Bash(xcodebuild -project handwaiving.xcodeproj -scheme handwaiving -destination \"platform=macOS\" build)"
+      "Bash(xcodebuild -project handwaiving.xcodeproj -scheme handwaiving -destination \"platform=macOS\" build)",
+      "Bash(xargs ls -la)"
     ]
   }
 }

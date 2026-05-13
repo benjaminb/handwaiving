@@ -126,25 +126,35 @@ private final class CursorView: NSView {
 
         let p = cursorPosition
         let radius: CGFloat = isSnapped ? 14 : 10
+        let ringColor = isSnapped ? NSColor.systemYellow : NSColor.systemCyan
+
+        // Dark shadow ring for contrast on any background
+        ctx.setStrokeColor(NSColor.black.withAlphaComponent(0.55).cgColor)
+        ctx.setLineWidth(isSnapped ? 5.5 : 5)
+        ctx.strokeEllipse(in: CGRect(x: p.x - radius, y: p.y - radius, width: radius*2, height: radius*2))
 
         // Outer ring
-        ctx.setStrokeColor((isSnapped ? NSColor.systemYellow : NSColor.white).cgColor)
+        ctx.setStrokeColor(ringColor.cgColor)
         ctx.setLineWidth(isSnapped ? 3 : 2.5)
         ctx.strokeEllipse(in: CGRect(x: p.x - radius, y: p.y - radius, width: radius*2, height: radius*2))
 
         // Inner dot
-        ctx.setFillColor(NSColor.white.withAlphaComponent(0.9).cgColor)
+        ctx.setFillColor(ringColor.withAlphaComponent(0.9).cgColor)
         ctx.fillEllipse(in: CGRect(x: p.x - 2, y: p.y - 2, width: 4, height: 4))
 
-        // Cross-hair ticks
+        // Cross-hair ticks — dark shadow first, then colored on top
         let tick: CGFloat = 6
-        ctx.setStrokeColor(NSColor.white.withAlphaComponent(0.8).cgColor)
-        ctx.setLineWidth(1.5)
-        ctx.strokeLineSegments(between: [
+        let tickSegs: [CGPoint] = [
             CGPoint(x: p.x - radius - tick, y: p.y), CGPoint(x: p.x - radius + 1, y: p.y),
             CGPoint(x: p.x + radius - 1, y: p.y),    CGPoint(x: p.x + radius + tick, y: p.y),
             CGPoint(x: p.x, y: p.y - radius - tick),  CGPoint(x: p.x, y: p.y - radius + 1),
             CGPoint(x: p.x, y: p.y + radius - 1),     CGPoint(x: p.x, y: p.y + radius + tick)
-        ])
+        ]
+        ctx.setStrokeColor(NSColor.black.withAlphaComponent(0.55).cgColor)
+        ctx.setLineWidth(3)
+        ctx.strokeLineSegments(between: tickSegs)
+        ctx.setStrokeColor(ringColor.withAlphaComponent(0.9).cgColor)
+        ctx.setLineWidth(1.5)
+        ctx.strokeLineSegments(between: tickSegs)
     }
 }

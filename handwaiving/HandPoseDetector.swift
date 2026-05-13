@@ -31,13 +31,20 @@ struct HandLandmarks: Sendable {
         hypot(indexMCP.x - wrist.x, indexMCP.y - wrist.y)
     }
 
-    // True when index is clearly extended and middle is curled (pointing pose)
+    // True when index is clearly extended and middle is curled (pointing pose).
+    // Uses wrist-relative distances instead of tip-to-MCP projected lengths, which
+    // collapse under foreshortening when the finger points toward the camera.
     var isPointingPose: Bool {
         let scale = handScale
         guard scale > 0.01 else { return false }
-        let indexLen = hypot(indexTip.x - indexMCP.x, indexTip.y - indexMCP.y)
-        let middleLen = hypot(middleTip.x - middleMCP.x, middleTip.y - middleMCP.y)
-        return indexLen > scale * 0.7 && middleLen < indexLen * 0.75
+        // PIP further from wrist than MCP → index is extended even when foreshortened
+        let pipFromWrist = hypot(indexPIP.x - wrist.x, indexPIP.y - wrist.y)
+        let indexExtended = pipFromWrist > scale * 1.1
+        // Middle tip not substantially further from wrist than middle MCP → curled
+        let middleTipFromWrist = hypot(middleTip.x - wrist.x, middleTip.y - wrist.y)
+        let middleMCPFromWrist = hypot(middleMCP.x - wrist.x, middleMCP.y - wrist.y)
+        let middleCurled = middleTipFromWrist < middleMCPFromWrist * 1.3
+        return indexExtended && middleCurled
     }
 
     // Positive = thumb above wrist (Vision y increases upward)
@@ -45,8 +52,14 @@ struct HandLandmarks: Sendable {
         thumbTip.y - wrist.y
     }
 
+    // PIP-to-wrist distance — robust to foreshortening, used for come-here curl detection
     var indexExtension: CGFloat {
-        hypot(indexTip.x - indexMCP.x, indexTip.y - indexMCP.y)
+        hypot(indexPIP.x - wrist.x, indexPIP.y - wrist.y)
+    }
+
+    // Looser check used during calibration — middle curl not required
+    var isIndexExtended: Bool {
+        indexExtension > handScale * 1.1
     }
 }
 
@@ -73,11 +86,11 @@ private actor VisionActor {
 
     private func extractLandmarks(_ obs: VNHumanHandPoseObservation) -> HandLandmarks? {
         guard
-            let wrist     = try? obs.recognizedPoint(.wrist),     wrist.confidence     > 0.3,
+            let wrist     = try? obs.recognizedPoint(.wrist),     wrist.confidence     > 0.15,
             let thumbTip  = try? obs.recognizedPoint(.thumbTip),
             let indexMCP  = try? obs.recognizedPoint(.indexMCP),
             let indexPIP  = try? obs.recognizedPoint(.indexPIP),
-            let indexTip  = try? obs.recognizedPoint(.indexTip),  indexTip.confidence  > 0.3,
+            let indexTip  = try? obs.recognizedPoint(.indexTip),  indexTip.confidence  > 0.15,
             let middleMCP = try? obs.recognizedPoint(.middleMCP),
             let middleTip = try? obs.recognizedPoint(.middleTip),
             let ringTip   = try? obs.recognizedPoint(.ringTip),

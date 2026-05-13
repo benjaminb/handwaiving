@@ -17,14 +17,14 @@ final class CursorController {
             unhideCursor()
             return
         }
-        let raw = transform.apply(landmarks.pointingDirection)
+        let raw = transform.apply(landmarks.indexTip)
         smoothed = CGPoint(
             x: smoothed.x + smoothingAlpha * (raw.x - smoothed.x),
             y: smoothed.y + smoothingAlpha * (raw.y - smoothed.y)
         )
         let clamped = clampToScreen(smoothed)
         screenPosition = clamped
-        CGWarpMouseCursorPosition(clamped)
+        CGWarpMouseCursorPosition(appkitToCG(clamped))
         hideCursor()
     }
 
@@ -41,6 +41,13 @@ final class CursorController {
             x: min(max(p.x, r.minX), r.maxX),
             y: min(max(p.y, r.minY), r.maxY)
         )
+    }
+
+    // CalibrationManager.screenPoint uses AppKit coords (y-up); CGWarpMouseCursorPosition
+    // and CGEvent both use CG global display coords (y-down). Convert before posting.
+    private func appkitToCG(_ p: CGPoint) -> CGPoint {
+        guard let screen = NSScreen.main else { return p }
+        return CGPoint(x: p.x, y: screen.frame.height - p.y)
     }
 
     private func hideCursor() {

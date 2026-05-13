@@ -111,7 +111,7 @@ final class CalibrationManager {
     private var currentCornerIndex = 0
     private let samplesNeeded = 45  // ~1.5 s at 30fps
 
-    private static let storageKey = "calibration_transform"
+    private static let storageKey = "calibration_transform_v2"
 
     init() {
         if let data = UserDefaults.standard.data(forKey: Self.storageKey),
@@ -130,8 +130,8 @@ final class CalibrationManager {
 
     // Feed each pointing-pose landmark into this during calibration
     func feedLandmarks(_ landmarks: HandLandmarks) {
-        guard case .collecting(let corner, _) = state, landmarks.isPointingPose else { return }
-        collectedSamples.append(landmarks.pointingDirection)
+        guard case .collecting(let corner, _) = state, landmarks.isIndexExtended else { return }
+        collectedSamples.append(landmarks.indexTip)
         let progress = Double(collectedSamples.count) / Double(samplesNeeded)
         state = .collecting(corner, progress: min(progress, 1.0))
         if collectedSamples.count >= samplesNeeded {
