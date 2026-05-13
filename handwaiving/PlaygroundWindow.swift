@@ -189,6 +189,7 @@ private struct HandDebugPanel: View {
                     debugRow("Screen pos",
                              value: String(format: "(%.0f, %.0f)", screenPos.x, screenPos.y))
                 }
+                .textSelection(.enabled)
             } else {
                 Text("No hand detected")
                     .foregroundStyle(.secondary)
